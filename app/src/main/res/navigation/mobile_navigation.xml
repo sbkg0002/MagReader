@@ -33,8 +33,25 @@
         android:label="Book Detail"
         tools:layout="@layout/fragment_book_detail">
         <argument
-            android:name="bookId"
-            app:argType="string" />
+            android:name="entryId"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="title"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="summary"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="thumbnailUrl"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="acquisitionUrl"
+            app:argType="string"
+            app:nullable="true" />
         <action
             android:id="@+id/action_book_detail_to_reader"
             app:destination="@id/nav_reader" />
@@ -46,7 +63,7 @@
         android:label="Reader"
         tools:layout="@layout/fragment_reader">
         <argument
-            android:name="bookId"
+            android:name="filePath"
             app:argType="string" />
     </fragment>
 

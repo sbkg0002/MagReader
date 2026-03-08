@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.magreader.magreader.R
-import com.magreader.magreader.data.KomgaManager
+import com.magreader.magreader.data.OpdsManager
 import com.magreader.magreader.databinding.FragmentLoginBinding
 import kotlinx.coroutines.launch
 
@@ -17,7 +17,7 @@ class LoginFragment : Fragment() {
 
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
-    private lateinit var komgaManager: KomgaManager
+    private lateinit var opdsManager: OpdsManager
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -30,47 +30,43 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        komgaManager = KomgaManager(requireContext())
+        opdsManager = OpdsManager(requireContext())
+
+        // Pre-fill if exists
+        binding.editServerUrl.setText(opdsManager.opdsUrl)
+        binding.editUsername.setText(opdsManager.username)
+        binding.editPassword.setText(opdsManager.password)
 
         binding.buttonLogin.setOnClickListener {
             val url = binding.editServerUrl.text.toString().trim()
             val user = binding.editUsername.text.toString().trim()
             val pass = binding.editPassword.text.toString().trim()
 
-            if (url.isEmpty() || user.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+            if (url.isEmpty()) {
+                Toast.makeText(context, "Please enter OPDS URL", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             binding.progressBar.visibility = View.VISIBLE
             binding.buttonLogin.isEnabled = false
 
-            // Use the new login method which ensures credentials are used immediately
-            komgaManager.login(url, user, pass)
+            opdsManager.opdsUrl = url
+            opdsManager.username = user
+            opdsManager.password = pass
+            opdsManager.refreshApi()
 
             lifecycleScope.launch {
                 try {
-                    val api = komgaManager.api
+                    val api = opdsManager.api
                     if (api != null) {
-                        val response = api.authenticate()
-                        if (response.isSuccessful) {
-                            findNavController().navigate(R.id.action_login_to_library)
-                        } else {
-                            val errorMsg = when (response.code()) {
-                                401 -> "Invalid credentials"
-                                403 -> "403 Forbidden: Access denied. Check user roles."
-                                else -> "Error: ${response.code()}"
-                            }
-                            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                            komgaManager.logout()
-                        }
+                        // Attempt to fetch the root feed to verify connection
+                        api.getFeed(url)
+                        findNavController().navigate(R.id.action_login_to_library)
                     } else {
                         Toast.makeText(context, "Failed to initialize API", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
-                    val message = e.message ?: "Unknown error"
-                    Toast.makeText(context, "Login failed: $message", Toast.LENGTH_LONG).show()
-                    komgaManager.logout()
+                    Toast.makeText(context, "Connection failed: ${e.message}", Toast.LENGTH_LONG).show()
                 } finally {
                     binding.progressBar.visibility = View.GONE
                     binding.buttonLogin.isEnabled = true

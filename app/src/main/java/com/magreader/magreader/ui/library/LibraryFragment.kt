@@ -10,7 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.magreader.magreader.R
-import com.magreader.magreader.data.KomgaManager
+import com.magreader.magreader.data.OpdsManager
 import com.magreader.magreader.databinding.FragmentLibraryBinding
 import kotlinx.coroutines.launch
 
@@ -18,7 +18,7 @@ class LibraryFragment : Fragment() {
 
     private var _binding: FragmentLibraryBinding? = null
     private val binding get() = _binding!!
-    private lateinit var komgaManager: KomgaManager
+    private lateinit var opdsManager: OpdsManager
     private lateinit var adapter: LibraryAdapter
 
     override fun onCreateView(
@@ -32,37 +32,46 @@ class LibraryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        komgaManager = KomgaManager(requireContext())
+        opdsManager = OpdsManager(requireContext())
         
-        if (komgaManager.serverUrl == null) {
+        if (opdsManager.opdsUrl == null) {
             findNavController().navigate(R.id.nav_login)
             return
         }
 
-        adapter = LibraryAdapter(komgaManager) { book ->
-            val bundle = Bundle().apply {
-                putString("bookId", book.id)
+        adapter = LibraryAdapter(opdsManager) { entry ->
+            if (entry.acquisitionUrl != null && entry.type?.contains("pdf") == true) {
+                val bundle = Bundle().apply {
+                    putString("entryId", entry.id)
+                    putString("title", entry.title)
+                    putString("summary", entry.summary)
+                    putString("thumbnailUrl", entry.thumbnailUrl)
+                    putString("acquisitionUrl", entry.acquisitionUrl)
+                }
+                findNavController().navigate(R.id.action_library_to_book_detail, bundle)
+            } else if (entry.acquisitionUrl != null && entry.type?.contains("atom+xml") == true) {
+                loadFeed(entry.acquisitionUrl)
             }
-            findNavController().navigate(R.id.action_library_to_book_detail, bundle)
         }
 
         binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
         binding.recyclerView.adapter = adapter
 
-        loadBooks()
+        loadFeed(opdsManager.opdsUrl!!)
     }
 
-    private fun loadBooks() {
+    private fun loadFeed(url: String) {
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                val api = komgaManager.api
-                if (api != null) {
-                    val response = api.getBooks(unpaged = false, size = 100)
-                    adapter.submitList(response.content)
+                val feed = opdsManager.getFeed(url)
+                if (feed != null) {
+                    adapter.submitList(feed.entries)
+                } else {
+                    Toast.makeText(context, "Failed to parse feed", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error loading books: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Error loading feed: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
             }

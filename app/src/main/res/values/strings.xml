@@ -3,7 +3,7 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="nav_header_title">OpenReader</string>
-    <string name="nav_header_subtitle">Komga Client</string>
+    <string name="nav_header_subtitle">OPDS Client</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
 
@@ -11,6 +11,7 @@
     <string name="menu_settings">Settings</string>
 
     <string name="page_indicator">%1$d / %2$d</string>
+    <string name="download_and_read">Download and Read</string>
 
     <string name="lorem_ipsum_title">Lorem Ipsum</string>
     <string name="lorem_ipsum">Lorem Ipsum is simply placeholder text.</string>

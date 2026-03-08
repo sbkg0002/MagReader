@@ -6,16 +6,15 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import coil.request.ImageRequest
-import com.magreader.magreader.data.Book
-import com.magreader.magreader.data.KomgaManager
+import com.magreader.magreader.data.OpdsEntry
+import com.magreader.magreader.data.OpdsManager
 import com.magreader.magreader.databinding.ItemBookBinding
 import okhttp3.Credentials
 
 class LibraryAdapter(
-    private val komgaManager: KomgaManager,
-    private val onItemClick: (Book) -> Unit
-) : ListAdapter<Book, LibraryAdapter.BookViewHolder>(BookDiffCallback()) {
+    private val opdsManager: OpdsManager,
+    private val onItemClick: (OpdsEntry) -> Unit
+) : ListAdapter<OpdsEntry, LibraryAdapter.BookViewHolder>(BookDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BookViewHolder {
         val binding = ItemBookBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -27,22 +26,28 @@ class LibraryAdapter(
     }
 
     inner class BookViewHolder(private val binding: ItemBookBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(book: Book) {
-            binding.textTitle.text = book.metadata.title
+        fun bind(entry: OpdsEntry) {
+            binding.textTitle.text = entry.title
             
-            val url = "${komgaManager.serverUrl}/api/v1/books/${book.id}/thumbnail"
-            
-            binding.imageThumbnail.load(url) {
-                crossfade(true)
-                addHeader("Authorization", Credentials.basic(komgaManager.username ?: "", komgaManager.password ?: ""))
+            if (entry.thumbnailUrl != null) {
+                binding.imageThumbnail.load(entry.thumbnailUrl) {
+                    crossfade(true)
+                    val user = opdsManager.username
+                    val pass = opdsManager.password
+                    if (!user.isNullOrEmpty() && !pass.isNullOrEmpty()) {
+                        addHeader("Authorization", Credentials.basic(user, pass))
+                    }
+                }
+            } else {
+                binding.imageThumbnail.setImageDrawable(null)
             }
 
-            binding.root.setOnClickListener { onItemClick(book) }
+            binding.root.setOnClickListener { onItemClick(entry) }
         }
     }
 
-    class BookDiffCallback : DiffUtil.ItemCallback<Book>() {
-        override fun areItemsTheSame(oldItem: Book, newItem: Book): Boolean = oldItem.id == newItem.id
-        override fun areContentsTheSame(oldItem: Book, newItem: Book): Boolean = oldItem == newItem
+    class BookDiffCallback : DiffUtil.ItemCallback<OpdsEntry>() {
+        override fun areItemsTheSame(oldItem: OpdsEntry, newItem: OpdsEntry): Boolean = oldItem.id == newItem.id
+        override fun areContentsTheSame(oldItem: OpdsEntry, newItem: OpdsEntry): Boolean = oldItem == newItem
     }
 }

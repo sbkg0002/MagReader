@@ -10,7 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import coil.load
 import com.magreader.magreader.R
-import com.magreader.magreader.data.KomgaManager
+import com.magreader.magreader.data.OpdsManager
 import com.magreader.magreader.databinding.FragmentBookDetailBinding
 import kotlinx.coroutines.launch
 import okhttp3.Credentials
@@ -19,8 +19,13 @@ class BookDetailFragment : Fragment() {
 
     private var _binding: FragmentBookDetailBinding? = null
     private val binding get() = _binding!!
-    private lateinit var komgaManager: KomgaManager
-    private var bookId: String? = null
+    private lateinit var opdsManager: OpdsManager
+    
+    private var entryId: String? = null
+    private var title: String? = null
+    private var summary: String? = null
+    private var thumbnailUrl: String? = null
+    private var acquisitionUrl: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -33,44 +38,60 @@ class BookDetailFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        komgaManager = KomgaManager(requireContext())
-        bookId = arguments?.getString("bookId")
+        opdsManager = OpdsManager(requireContext())
+        
+        entryId = arguments?.getString("entryId")
+        title = arguments?.getString("title")
+        summary = arguments?.getString("summary")
+        thumbnailUrl = arguments?.getString("thumbnailUrl")
+        acquisitionUrl = arguments?.getString("acquisitionUrl")
 
-        if (bookId == null) {
+        if (acquisitionUrl == null) {
             findNavController().popBackStack()
             return
         }
 
-        loadBookDetails()
+        binding.textTitle.text = title
+        binding.textSummary.text = summary
+        
+        if (thumbnailUrl != null) {
+            binding.imageThumbnail.load(thumbnailUrl) {
+                crossfade(true)
+                val user = opdsManager.username
+                val pass = opdsManager.password
+                if (!user.isNullOrEmpty() && !pass.isNullOrEmpty()) {
+                    addHeader("Authorization", Credentials.basic(user, pass))
+                }
+            }
+        }
+
+        binding.buttonRead.text = getString(R.string.download_and_read)
 
         binding.buttonRead.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("bookId", bookId)
-            }
-            findNavController().navigate(R.id.action_book_detail_to_reader, bundle)
+            downloadAndRead()
         }
     }
 
-    private fun loadBookDetails() {
+    private fun downloadAndRead() {
         binding.progressBar.visibility = View.VISIBLE
+        binding.buttonRead.isEnabled = false
+        
         lifecycleScope.launch {
             try {
-                val api = komgaManager.api
-                if (api != null && bookId != null) {
-                    val book = api.getBook(bookId!!)
-                    binding.textTitle.text = book.metadata.title
-                    binding.textSummary.text = book.metadata.summary
-
-                    val url = "${komgaManager.serverUrl}/api/v1/books/${book.id}/thumbnail"
-                    binding.imageThumbnail.load(url) {
-                        crossfade(true)
-                        addHeader("Authorization", Credentials.basic(komgaManager.username ?: "", komgaManager.password ?: ""))
+                val file = opdsManager.downloadBook(entryId ?: "temp", acquisitionUrl!!)
+                if (file != null && file.exists()) {
+                    val bundle = Bundle().apply {
+                        putString("filePath", file.absolutePath)
                     }
+                    findNavController().navigate(R.id.action_book_detail_to_reader, bundle)
+                } else {
+                    Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error loading book: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
+                binding.buttonRead.isEnabled = true
             }
         }
     }

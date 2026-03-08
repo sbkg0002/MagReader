@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_login">
+
+    <fragment
+        android:id="@+id/nav_login"
+        android:name="com.magreader.magreader.ui.login.LoginFragment"
+        android:label="Login"
+        tools:layout="@layout/fragment_login">
+        <action
+            android:id="@+id/action_login_to_library"
+            app:destination="@id/nav_library"
+            app:popUpTo="@id/nav_login"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_library"
+        android:name="com.magreader.magreader.ui.library.LibraryFragment"
+        android:label="Library"
+        tools:layout="@layout/fragment_library">
+        <action
+            android:id="@+id/action_library_to_book_detail"
+            app:destination="@id/nav_book_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_book_detail"
+        android:name="com.magreader.magreader.ui.book.BookDetailFragment"
+        android:label="Book Detail"
+        tools:layout="@layout/fragment_book_detail">
+        <argument
+            android:name="bookId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_book_detail_to_reader"
+            app:destination="@id/nav_reader" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_reader"
+        android:name="com.magreader.magreader.ui.reader.ReaderFragment"
+        android:label="Reader"
+        tools:layout="@layout/fragment_reader">
+        <argument
+            android:name="bookId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.magreader.magreader.ui.settings.SettingsFragment"
+        android:label="@string/menu_settings"
+        tools:layout="@layout/fragment_settings" />
+</navigation>

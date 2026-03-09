@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.magreader.magreader.R
 import com.magreader.magreader.data.OpdsEntry
@@ -67,6 +67,8 @@ class LibraryFragment : Fragment() {
                     findNavController().navigate(R.id.action_library_to_book_detail, bundle)
                 }
             } else if (entry.acquisitionUrl != null && entry.type?.contains("atom+xml") == true) {
+                // Navigate to a new instance of LibraryFragment for sub-folders
+                // This ensures the back button works correctly and doesn't lead to an empty view
                 val bundle = Bundle().apply {
                     putString("subFeedUrl", entry.acquisitionUrl)
                     putBoolean("isOfflineMode", false)
@@ -75,7 +77,7 @@ class LibraryFragment : Fragment() {
             }
         }
 
-        val layoutManager = GridLayoutManager(requireContext(), 3)
+        val layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = adapter
 

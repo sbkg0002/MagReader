@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.magreader.magreader"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.magreader.magreader"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -28,6 +28,8 @@ android {
 
     buildTypes {
         release {
+            // Sign release build with debug key for testing on Android 15
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

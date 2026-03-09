@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.magreader.magreader.R
@@ -27,6 +28,7 @@ class LibraryFragment : Fragment() {
     private var nextUrl: String? = null
     private var isLoading = false
     private var isOfflineMode = false
+    private var isGridView = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,8 +69,6 @@ class LibraryFragment : Fragment() {
                     findNavController().navigate(R.id.action_library_to_book_detail, bundle)
                 }
             } else if (entry.acquisitionUrl != null && entry.type?.contains("atom+xml") == true) {
-                // Navigate to a new instance of LibraryFragment for sub-folders
-                // This ensures the back button works correctly and doesn't lead to an empty view
                 val bundle = Bundle().apply {
                     putString("subFeedUrl", entry.acquisitionUrl)
                     putBoolean("isOfflineMode", false)
@@ -77,22 +77,28 @@ class LibraryFragment : Fragment() {
             }
         }
 
-        val layoutManager = LinearLayoutManager(requireContext())
-        binding.recyclerView.layoutManager = layoutManager
-        binding.recyclerView.adapter = adapter
+        binding.buttonToggleLayout.setOnClickListener {
+            isGridView = !isGridView
+            updateLayout()
+        }
+
+        updateLayout()
 
         if (!isOfflineMode) {
             binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     super.onScrolled(recyclerView, dx, dy)
-                    val visibleItemCount = layoutManager.childCount
-                    val totalItemCount = layoutManager.itemCount
-                    val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+                    val layoutManager = binding.recyclerView.layoutManager
+                    if (layoutManager is LinearLayoutManager) {
+                        val visibleItemCount = layoutManager.childCount
+                        val totalItemCount = layoutManager.itemCount
+                        val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
-                    if (!isLoading && nextUrl != null) {
-                        if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
-                            && firstVisibleItemPosition >= 0) {
-                            loadFeed(nextUrl!!)
+                        if (!isLoading && nextUrl != null) {
+                            if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                                && firstVisibleItemPosition >= 0) {
+                                loadFeed(nextUrl!!)
+                            }
                         }
                     }
                 }
@@ -107,9 +113,20 @@ class LibraryFragment : Fragment() {
                 loadFeed(subFeedUrl ?: opdsManager.opdsUrl!!)
             }
         } else {
-            // Restore existing data to the new adapter instance when returning from backstack
             adapter.submitList(currentEntries.toList())
         }
+    }
+
+    private fun updateLayout() {
+        adapter.isGridView = isGridView
+        if (isGridView) {
+            binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
+            binding.buttonToggleLayout.setImageResource(R.drawable.ic_slideshow_black_24dp) // List icon placeholder
+        } else {
+            binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+            binding.buttonToggleLayout.setImageResource(R.drawable.ic_gallery_black_24dp) // Grid icon placeholder
+        }
+        binding.recyclerView.adapter = adapter
     }
 
     private fun loadOfflineContent() {

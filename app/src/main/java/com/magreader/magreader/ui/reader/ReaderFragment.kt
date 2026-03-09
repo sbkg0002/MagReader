@@ -42,6 +42,10 @@ class ReaderFragment : Fragment() {
         opdsManager = OpdsManager(requireContext())
         val filePath = arguments?.getString("filePath")
 
+        binding.buttonBack.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
         if (filePath == null) {
             findNavController().popBackStack()
             return

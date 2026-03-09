@@ -4,35 +4,41 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import com.magreader.magreader.data.OpdsManager
 import com.magreader.magreader.databinding.FragmentSettingsBinding
 
 class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
-
-    // This property is only valid between onCreateView and
-    // onDestroyView.
     private val binding get() = _binding!!
+    private lateinit var opdsManager: OpdsManager
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val settingsViewModel =
-            ViewModelProvider(this).get(SettingsViewModel::class.java)
-
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
-        val root: View = binding.root
+        return binding.root
+    }
 
-        val textView: TextView = binding.textSettings
-        settingsViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        opdsManager = OpdsManager(requireContext())
+
+        binding.editDataLocation.setText(opdsManager.dataLocation)
+
+        binding.buttonSaveSettings.setOnClickListener {
+            val newLocation = binding.editDataLocation.text.toString().trim()
+            if (newLocation.isNotEmpty()) {
+                opdsManager.dataLocation = newLocation
+                Toast.makeText(context, "Settings saved", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Location cannot be empty", Toast.LENGTH_SHORT).show()
+            }
         }
-        return root
     }
 
     override fun onDestroyView() {

@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
         binding.navView?.let {
             appBarConfiguration = AppBarConfiguration(
                 setOf(
-                    R.id.nav_library, R.id.nav_login, R.id.nav_settings
+                    R.id.nav_library, R.id.nav_login, R.id.nav_settings, R.id.nav_offline
                 ),
                 binding.drawerLayout
             )
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         binding.appBarMain.contentMain.bottomNavView?.let {
             appBarConfiguration = AppBarConfiguration(
                 setOf(
-                    R.id.nav_library, R.id.nav_settings
+                    R.id.nav_library, R.id.nav_offline, R.id.nav_settings
                 )
             )
             setupActionBarWithNavController(navController, appBarConfiguration)
@@ -64,21 +64,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        val navView: NavigationView? = findViewById(R.id.nav_view)
-        if (navView == null) {
-            menuInflater.inflate(R.menu.overflow, menu)
-        }
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.nav_settings -> {
-                val navController = findNavController(R.id.nav_host_fragment_content_main)
-                navController.navigate(R.id.nav_settings)
-            }
-        }
-        return super.onOptionsItemSelected(item)
+        // Return false to hide the 3-dot overflow menu
+        return false
     }
 
     override fun onSupportNavigateUp(): Boolean {

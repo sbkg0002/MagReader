@@ -1,35 +1,71 @@
 package com.magreader.magreader.data
 
+import android.util.Log
 import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
 import java.io.StringReader
+import java.net.URL
 
 class OpdsParser {
-    fun parse(xml: String): OpdsFeed {
+    fun parse(xml: String, baseUrl: String): OpdsFeed {
         val parser = Xml.newPullParser()
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
         parser.setInput(StringReader(xml))
-        parser.nextTag()
-        return readFeed(parser)
+        try {
+            var eventType = parser.eventType
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                if (eventType == XmlPullParser.START_TAG && localName(parser.name) == "feed") {
+                    return readFeed(parser, baseUrl)
+                }
+                eventType = parser.next()
+            }
+        } catch (e: Exception) {
+            Log.e("OpdsParser", "Error parsing OPDS", e)
+        }
+        return OpdsFeed("Error", emptyList())
     }
 
-    private fun readFeed(parser: XmlPullParser): OpdsFeed {
+    private fun localName(name: String): String = name.substringAfter(":")
+
+    private fun resolveUrl(baseUrl: String, relativeUrl: String?): String? {
+        if (relativeUrl == null) return null
+        if (relativeUrl.startsWith("http://") || relativeUrl.startsWith("https://")) return relativeUrl
+        
+        return try {
+            val base = URL(baseUrl)
+            URL(base, relativeUrl).toString()
+        } catch (e: Exception) {
+            relativeUrl
+        }
+    }
+
+    private fun readFeed(parser: XmlPullParser, baseUrl: String): OpdsFeed {
         var title = ""
         val entries = mutableListOf<OpdsEntry>()
+        var nextUrl: String? = null
 
-        parser.require(XmlPullParser.START_TAG, null, "feed")
+        parser.require(XmlPullParser.START_TAG, null, parser.name)
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.eventType != XmlPullParser.START_TAG) continue
-            when (parser.name) {
+            val name = localName(parser.name)
+            when (name) {
                 "title" -> title = readText(parser)
-                "entry" -> entries.add(readEntry(parser))
+                "entry" -> entries.add(readEntry(parser, baseUrl))
+                "link" -> {
+                    val rel = parser.getAttributeValue(null, "rel")
+                    val href = parser.getAttributeValue(null, "href")
+                    if (rel == "next") {
+                        nextUrl = resolveUrl(baseUrl, href)
+                    }
+                    parser.nextTag()
+                }
                 else -> skip(parser)
             }
         }
-        return OpdsFeed(title, entries)
+        return OpdsFeed(title, entries, nextUrl)
     }
 
-    private fun readEntry(parser: XmlPullParser): OpdsEntry {
+    private fun readEntry(parser: XmlPullParser, baseUrl: String): OpdsEntry {
         var title = ""
         var id = ""
         var summary: String? = null
@@ -37,10 +73,11 @@ class OpdsParser {
         var acquisitionUrl: String? = null
         var type: String? = null
 
-        parser.require(XmlPullParser.START_TAG, null, "entry")
+        parser.require(XmlPullParser.START_TAG, null, parser.name)
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.eventType != XmlPullParser.START_TAG) continue
-            when (parser.name) {
+            val name = localName(parser.name)
+            when (name) {
                 "title" -> title = readText(parser)
                 "id" -> id = readText(parser)
                 "summary" -> summary = readText(parser)
@@ -50,14 +87,15 @@ class OpdsParser {
                     val linkType = parser.getAttributeValue(null, "type")
                     
                     if (rel != null) {
-                        if (rel.contains("thumbnail") || rel.contains("image")) {
-                            thumbnailUrl = href
+                        // Log.d("OpdsParser", "Found link: rel=$rel, type=$linkType")
+                        if (rel.contains("thumbnail") || rel.contains("image") || rel.contains("cover")) {
+                            thumbnailUrl = resolveUrl(baseUrl, href)
                         } else if (rel.contains("acquisition")) {
-                            acquisitionUrl = href
+                            acquisitionUrl = resolveUrl(baseUrl, href)
                             type = linkType
                         } else if (rel.contains("subsection") || rel.contains("alternate")) {
                             if (linkType?.contains("atom+xml") == true) {
-                                acquisitionUrl = href
+                                acquisitionUrl = resolveUrl(baseUrl, href)
                                 type = linkType
                             }
                         }

@@ -2,6 +2,8 @@ package com.magreader.magreader.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -12,7 +14,9 @@ import java.io.FileOutputStream
 
 class OpdsManager(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("opds_prefs", Context.MODE_PRIVATE)
+    private val offlinePrefs: SharedPreferences = context.getSharedPreferences("offline_metadata", Context.MODE_PRIVATE)
     private val parser = OpdsParser()
+    private val gson = Gson()
 
     var opdsUrl: String?
         get() = prefs.getString("opds_url", null)
@@ -25,6 +29,13 @@ class OpdsManager(private val context: Context) {
     var password: String?
         get() = prefs.getString("password", null)
         set(value) = prefs.edit().putString("password", value).apply()
+
+    var dataLocation: String?
+        get() = prefs.getString("data_location", context.filesDir.absolutePath)
+        set(value) = prefs.edit().putString("data_location", value).apply()
+
+    private val baseDir: File
+        get() = dataLocation?.let { File(it) } ?: context.filesDir
 
     private var _api: OpdsApi? = null
 
@@ -79,27 +90,87 @@ class OpdsManager(private val context: Context) {
         val api = api ?: return null
         return try {
             val xml = api.getFeed(url)
-            parser.parse(xml)
+            parser.parse(xml, url)
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
     }
 
-    suspend fun downloadBook(bookId: String, url: String): File? {
+    suspend fun downloadBook(entry: OpdsEntry): File? {
         val api = api ?: return null
+        val url = entry.acquisitionUrl ?: return null
         try {
             val response = api.downloadFile(url)
-            val file = File(context.filesDir, "$bookId.pdf")
+            if (!baseDir.exists()) baseDir.mkdirs()
+            val file = File(baseDir, "${entry.id.hashCode()}.pdf")
             response.byteStream().use { input ->
                 FileOutputStream(file).use { output ->
                     input.copyTo(output)
                 }
             }
+            
+            // Save thumbnail if possible
+            if (entry.thumbnailUrl != null) {
+                downloadThumbnail(entry.id, entry.thumbnailUrl)
+            }
+
+            // Save metadata for offline view
+            saveOfflineMetadata(entry)
+            
             return file
         } catch (e: Exception) {
             e.printStackTrace()
             return null
         }
+    }
+
+    private suspend fun downloadThumbnail(entryId: String, url: String) {
+        val api = api ?: return
+        try {
+            val response = api.downloadFile(url)
+            if (!baseDir.exists()) baseDir.mkdirs()
+            val file = File(baseDir, "${entryId.hashCode()}.thumb")
+            response.byteStream().use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun saveOfflineMetadata(entry: OpdsEntry) {
+        val json = gson.toJson(entry)
+        offlinePrefs.edit().putString(entry.id, json).apply()
+    }
+
+    fun getOfflineBooks(): List<OpdsEntry> {
+        val allMetadata = offlinePrefs.all
+        val entries = mutableListOf<OpdsEntry>()
+        for (value in allMetadata.values) {
+            if (value is String) {
+                val entry = gson.fromJson(value, OpdsEntry::class.java)
+                // Check if file still exists
+                val file = File(baseDir, "${entry.id.hashCode()}.pdf")
+                if (file.exists()) {
+                    // Update entry to point to local thumbnail
+                    val thumbFile = File(baseDir, "${entry.id.hashCode()}.thumb")
+                    val updatedEntry = if (thumbFile.exists()) {
+                        entry.copy(thumbnailUrl = "file://${thumbFile.absolutePath}", acquisitionUrl = "file://${file.absolutePath}")
+                    } else {
+                        entry.copy(acquisitionUrl = "file://${file.absolutePath}")
+                    }
+                    entries.add(updatedEntry)
+                }
+            }
+        }
+        return entries
+    }
+    
+    fun getLocalFile(entryId: String): File? {
+        val file = File(baseDir, "${entryId.hashCode()}.pdf")
+        return if (file.exists()) file else null
     }
 }

@@ -22,8 +22,31 @@
         android:name="com.magreader.magreader.ui.library.LibraryFragment"
         android:label="Library"
         tools:layout="@layout/fragment_library">
+        <argument
+            android:name="isOfflineMode"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
+            android:name="subFeedUrl"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
         <action
             android:id="@+id/action_library_to_book_detail"
+            app:destination="@id/nav_book_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_offline"
+        android:name="com.magreader.magreader.ui.library.LibraryFragment"
+        android:label="Offline"
+        tools:layout="@layout/fragment_library">
+        <argument
+            android:name="isOfflineMode"
+            app:argType="boolean"
+            android:defaultValue="true" />
+        <action
+            android:id="@+id/action_offline_to_book_detail"
             app:destination="@id/nav_book_detail" />
     </fragment>
 

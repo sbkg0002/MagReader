@@ -9,7 +9,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.magreader.magreader.R
+import com.magreader.magreader.data.OpdsEntry
 import com.magreader.magreader.data.OpdsManager
 import com.magreader.magreader.databinding.FragmentLibraryBinding
 import kotlinx.coroutines.launch
@@ -20,6 +22,11 @@ class LibraryFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var opdsManager: OpdsManager
     private lateinit var adapter: LibraryAdapter
+    
+    private var currentEntries = mutableListOf<OpdsEntry>()
+    private var nextUrl: String? = null
+    private var isLoading = false
+    private var isOfflineMode = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -33,40 +40,99 @@ class LibraryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         opdsManager = OpdsManager(requireContext())
+        isOfflineMode = arguments?.getBoolean("isOfflineMode") ?: false
         
-        if (opdsManager.opdsUrl == null) {
+        if (!isOfflineMode && opdsManager.opdsUrl == null) {
             findNavController().navigate(R.id.nav_login)
             return
         }
 
         adapter = LibraryAdapter(opdsManager) { entry ->
-            if (entry.acquisitionUrl != null && entry.type?.contains("pdf") == true) {
-                val bundle = Bundle().apply {
-                    putString("entryId", entry.id)
-                    putString("title", entry.title)
-                    putString("summary", entry.summary)
-                    putString("thumbnailUrl", entry.thumbnailUrl)
-                    putString("acquisitionUrl", entry.acquisitionUrl)
+            if (isOfflineMode || (entry.acquisitionUrl != null && (entry.type?.contains("pdf") == true || entry.acquisitionUrl!!.endsWith(".pdf")))) {
+                val filePath = if (isOfflineMode) entry.acquisitionUrl?.removePrefix("file://") else null
+                
+                if (filePath != null) {
+                    val bundle = Bundle().apply {
+                        putString("filePath", filePath)
+                    }
+                    findNavController().navigate(R.id.nav_reader, bundle)
+                } else {
+                    val bundle = Bundle().apply {
+                        putString("entryId", entry.id)
+                        putString("title", entry.title)
+                        putString("summary", entry.summary)
+                        putString("thumbnailUrl", entry.thumbnailUrl)
+                        putString("acquisitionUrl", entry.acquisitionUrl)
+                    }
+                    findNavController().navigate(R.id.action_library_to_book_detail, bundle)
                 }
-                findNavController().navigate(R.id.action_library_to_book_detail, bundle)
             } else if (entry.acquisitionUrl != null && entry.type?.contains("atom+xml") == true) {
-                loadFeed(entry.acquisitionUrl)
+                val bundle = Bundle().apply {
+                    putString("subFeedUrl", entry.acquisitionUrl)
+                    putBoolean("isOfflineMode", false)
+                }
+                findNavController().navigate(R.id.nav_library, bundle)
             }
         }
 
-        binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
+        val layoutManager = GridLayoutManager(requireContext(), 3)
+        binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = adapter
 
-        loadFeed(opdsManager.opdsUrl!!)
+        if (!isOfflineMode) {
+            binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    val visibleItemCount = layoutManager.childCount
+                    val totalItemCount = layoutManager.itemCount
+                    val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+
+                    if (!isLoading && nextUrl != null) {
+                        if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                            && firstVisibleItemPosition >= 0) {
+                            loadFeed(nextUrl!!)
+                        }
+                    }
+                }
+            })
+        }
+
+        if (currentEntries.isEmpty()) {
+            if (isOfflineMode) {
+                loadOfflineContent()
+            } else {
+                val subFeedUrl = arguments?.getString("subFeedUrl")
+                loadFeed(subFeedUrl ?: opdsManager.opdsUrl!!)
+            }
+        } else {
+            // Restore existing data to the new adapter instance when returning from backstack
+            adapter.submitList(currentEntries.toList())
+        }
+    }
+
+    private fun loadOfflineContent() {
+        binding.progressBar.visibility = View.VISIBLE
+        val books = opdsManager.getOfflineBooks()
+        currentEntries.clear()
+        currentEntries.addAll(books)
+        adapter.submitList(books)
+        binding.progressBar.visibility = View.GONE
+        if (books.isEmpty()) {
+            Toast.makeText(context, "No offline content found", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun loadFeed(url: String) {
+        isLoading = true
         binding.progressBar.visibility = View.VISIBLE
+        
         lifecycleScope.launch {
             try {
                 val feed = opdsManager.getFeed(url)
                 if (feed != null) {
-                    adapter.submitList(feed.entries)
+                    currentEntries.addAll(feed.entries)
+                    adapter.submitList(currentEntries.toList())
+                    nextUrl = feed.nextUrl
                 } else {
                     Toast.makeText(context, "Failed to parse feed", Toast.LENGTH_SHORT).show()
                 }
@@ -74,6 +140,7 @@ class LibraryFragment : Fragment() {
                 Toast.makeText(context, "Error loading feed: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
+                isLoading = false
             }
         }
     }

@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
+import com.magreader.magreader.R
 import com.magreader.magreader.data.OpdsEntry
 import com.magreader.magreader.data.OpdsManager
 import com.magreader.magreader.databinding.ItemBookBinding
@@ -29,17 +30,15 @@ class LibraryAdapter(
         fun bind(entry: OpdsEntry) {
             binding.textTitle.text = entry.title
             
-            if (entry.thumbnailUrl != null) {
-                binding.imageThumbnail.load(entry.thumbnailUrl) {
-                    crossfade(true)
-                    val user = opdsManager.username
-                    val pass = opdsManager.password
-                    if (!user.isNullOrEmpty() && !pass.isNullOrEmpty()) {
-                        addHeader("Authorization", Credentials.basic(user, pass))
-                    }
+            binding.imageThumbnail.load(entry.thumbnailUrl) {
+                crossfade(true)
+                placeholder(R.drawable.icon_watermark)
+                error(R.drawable.icon_watermark)
+                val user = opdsManager.username
+                val pass = opdsManager.password
+                if (!user.isNullOrEmpty() && !pass.isNullOrEmpty()) {
+                    addHeader("Authorization", Credentials.basic(user, pass))
                 }
-            } else {
-                binding.imageThumbnail.setImageDrawable(null)
             }
 
             binding.root.setOnClickListener { onItemClick(entry) }

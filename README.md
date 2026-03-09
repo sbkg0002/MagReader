@@ -6,6 +6,12 @@
 
 MagReader is a modern Android application designed for browsing and reading magazines and books via OPDS feeds.
 
+## Download
+
+You can download the latest version of MagReader and stay updated by adding this repository to **Obtainium**.
+
+**Direct Import:** [Add to Obtainium](obtainium://add/https://github.com/sbkg0002/MagReader)
+
 ## Features
 
 - **OPDS Library**: Browse your favorite catalogs using the OPDS protocol.
@@ -31,7 +37,7 @@ MagReader is a modern Android application designed for browsing and reading maga
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/MagReader.git
+   git clone https://github.com/sbkg0002/MagReader.git
    ```
 2. Open the project in Android Studio.
 3. Build the project using Gradle:

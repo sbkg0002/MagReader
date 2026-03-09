@@ -55,14 +55,14 @@ class BookDetailFragment : Fragment() {
         binding.textTitle.text = title
         binding.textSummary.text = summary
         
-        if (thumbnailUrl != null) {
-            binding.imageThumbnail.load(thumbnailUrl) {
-                crossfade(true)
-                val user = opdsManager.username
-                val pass = opdsManager.password
-                if (!user.isNullOrEmpty() && !pass.isNullOrEmpty()) {
-                    addHeader("Authorization", Credentials.basic(user, pass))
-                }
+        binding.imageThumbnail.load(thumbnailUrl) {
+            crossfade(true)
+            placeholder(R.drawable.icon_watermark)
+            error(R.drawable.icon_watermark)
+            val user = opdsManager.username
+            val pass = opdsManager.password
+            if (!user.isNullOrEmpty() && !pass.isNullOrEmpty()) {
+                addHeader("Authorization", Credentials.basic(user, pass))
             }
         }
 

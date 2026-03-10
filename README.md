@@ -8,9 +8,9 @@ MagReader is a modern Android application designed for browsing and reading maga
 
 ## Download
 
-You can download the latest version of MagReader and stay updated by adding this repository to **Obtainium**.
+You can download the latest version of MagReader and stay updated by adding this repository to **[Obtainium](https://obtainium.imranr.dev/)**.
 
-**Direct Import:** [Add to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=aHR0cHM6Ly9naXRodWIuY29tL3Nia2cwMDAyL01hZ1JlYWRlcgo=)
+[![Get it via Obtainium](https://img.shields.io/badge/Get%20it%20via-Obtainium-brightgreen?style=for-the-badge&logo=android&logoColor=white)](http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/sbkg0002/MagReader)
 
 ## Features
 
@@ -21,8 +21,8 @@ You can download the latest version of MagReader and stay updated by adding this
 
 ## Screenshots
 
-| Library | Login | Offline | Settings |
-|:---:|:---:|:---:|:---:|
+|             Library             |              Login              |               Offline               |               Settings                |
+| :-----------------------------: | :-----------------------------: | :---------------------------------: | :-----------------------------------: |
 | ![Library](screenshots/lib.png) | ![Login](screenshots/login.png) | ![Offline](screenshots/offline.png) | ![Settings](screenshots/settings.png) |
 
 ## Getting Started

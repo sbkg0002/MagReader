@@ -43,6 +43,7 @@ class LibraryFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         opdsManager = OpdsManager(requireContext())
         isOfflineMode = arguments?.getBoolean("isOfflineMode") ?: false
+        isGridView = opdsManager.isGridView
         
         if (!isOfflineMode && opdsManager.opdsUrl == null) {
             findNavController().navigate(R.id.nav_login)
@@ -89,6 +90,7 @@ class LibraryFragment : Fragment() {
 
         binding.buttonToggleLayout.setOnClickListener {
             isGridView = !isGridView
+            opdsManager.isGridView = isGridView
             updateLayout()
         }
 

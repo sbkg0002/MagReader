@@ -10,7 +10,7 @@ MagReader is a modern Android application designed for browsing and reading maga
 
 You can download the latest version of MagReader and stay updated by adding this repository to **[Obtainium](https://obtainium.imranr.dev/)**.
 
-[![Get it via Obtainium](https://img.shields.io/badge/Get%20it%20via-Obtainium-brightgreen?style=for-the-badge&logo=android&logoColor=white)](http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/sbkg0002/MagReader)
+[<img src="https://brouken.com/img/get-it-on-obtainium.png" alt="Get it on Obtainium" height="75">](http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/sbkg0002/MagReader)
 
 ## Features
 
@@ -21,9 +21,9 @@ You can download the latest version of MagReader and stay updated by adding this
 
 ## Screenshots
 
-|             Library             |              Login              |               Offline               |               Settings                |
-| :-----------------------------: | :-----------------------------: | :---------------------------------: | :-----------------------------------: |
-| ![Library](screenshots/lib.png) | ![Login](screenshots/login.png) | ![Offline](screenshots/offline.png) | ![Settings](screenshots/settings.png) |
+|                Library                |               Library_2               |              Login              |               Offline               |               Settings                |
+| :-----------------------------------: |:-------------------------------------:| :-----------------------------: | :---------------------------------: | :-----------------------------------: |
+| ![Library](screenshots/library_1.png) | ![Library](screenshots/library_3.png) | ![Login](screenshots/login.png) | ![Offline](screenshots/offline.png) | ![Settings](screenshots/settings.png) |
 
 ## Getting Started
 

@@ -38,6 +38,10 @@ class OpdsManager(private val context: Context) {
         get() = prefs.getInt("grid_span_count", 3)
         set(value) = prefs.edit().putInt("grid_span_count", value).apply()
 
+    var isGridView: Boolean
+        get() = prefs.getBoolean("is_grid_view", false)
+        set(value) = prefs.edit().putBoolean("is_grid_view", value).apply()
+
     private val baseDir: File
         get() = dataLocation?.let { File(it) } ?: context.filesDir
 

@@ -118,6 +118,17 @@ class LibraryFragment : Fragment() {
                                 loadFeed(nextUrl!!)
                             }
                         }
+                    } else if (layoutManager is GridLayoutManager) {
+                        val visibleItemCount = layoutManager.childCount
+                        val totalItemCount = layoutManager.itemCount
+                        val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+
+                        if (!isLoading && nextUrl != null) {
+                            if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                                && firstVisibleItemPosition >= 0) {
+                                loadFeed(nextUrl!!)
+                            }
+                        }
                     }
                 }
             })
@@ -166,7 +177,7 @@ class LibraryFragment : Fragment() {
     private fun updateLayout() {
         adapter.isGridView = isGridView
         if (isGridView) {
-            binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
+            binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), opdsManager.gridSpanCount)
             binding.buttonToggleLayout.setImageResource(R.drawable.ic_list_view_24dp)
         } else {
             binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())

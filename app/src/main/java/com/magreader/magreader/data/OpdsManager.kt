@@ -34,6 +34,10 @@ class OpdsManager(private val context: Context) {
         get() = prefs.getString("data_location", context.filesDir.absolutePath)
         set(value) = prefs.edit().putString("data_location", value).apply()
 
+    var gridSpanCount: Int
+        get() = prefs.getInt("grid_span_count", 3)
+        set(value) = prefs.edit().putInt("grid_span_count", value).apply()
+
     private val baseDir: File
         get() = dataLocation?.let { File(it) } ?: context.filesDir
 

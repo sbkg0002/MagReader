@@ -33,12 +33,21 @@ class SettingsFragment : Fragment() {
         binding.editUsername.setText(opdsManager.username)
         binding.editPassword.setText(opdsManager.password)
         binding.editDataLocation.setText(opdsManager.dataLocation)
+        
+        val currentSpan = opdsManager.gridSpanCount
+        binding.sliderGridSpan.value = currentSpan.toFloat()
+        binding.textGridSpanLabel.text = "Grid columns: $currentSpan"
+
+        binding.sliderGridSpan.addOnChangeListener { _, value, _ ->
+            binding.textGridSpanLabel.text = "Grid columns: ${value.toInt()}"
+        }
 
         binding.buttonSaveSettings.setOnClickListener {
             val url = binding.editOpdsUrl.text.toString().trim()
             val user = binding.editUsername.text.toString().trim()
             val pass = binding.editPassword.text.toString().trim()
             val location = binding.editDataLocation.text.toString().trim()
+            val span = binding.sliderGridSpan.value.toInt()
 
             if (url.isEmpty()) {
                 Toast.makeText(context, "Server URL cannot be empty", Toast.LENGTH_SHORT).show()
@@ -54,6 +63,7 @@ class SettingsFragment : Fragment() {
             opdsManager.username = user
             opdsManager.password = pass
             opdsManager.dataLocation = location
+            opdsManager.gridSpanCount = span
             
             // Refresh API client with new credentials/URL
             opdsManager.refreshApi()

@@ -28,16 +28,37 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         opdsManager = OpdsManager(requireContext())
 
+        // Load current settings
+        binding.editOpdsUrl.setText(opdsManager.opdsUrl)
+        binding.editUsername.setText(opdsManager.username)
+        binding.editPassword.setText(opdsManager.password)
         binding.editDataLocation.setText(opdsManager.dataLocation)
 
         binding.buttonSaveSettings.setOnClickListener {
-            val newLocation = binding.editDataLocation.text.toString().trim()
-            if (newLocation.isNotEmpty()) {
-                opdsManager.dataLocation = newLocation
-                Toast.makeText(context, "Settings saved", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "Location cannot be empty", Toast.LENGTH_SHORT).show()
+            val url = binding.editOpdsUrl.text.toString().trim()
+            val user = binding.editUsername.text.toString().trim()
+            val pass = binding.editPassword.text.toString().trim()
+            val location = binding.editDataLocation.text.toString().trim()
+
+            if (url.isEmpty()) {
+                Toast.makeText(context, "Server URL cannot be empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+            
+            if (location.isEmpty()) {
+                Toast.makeText(context, "Data location cannot be empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            opdsManager.opdsUrl = url
+            opdsManager.username = user
+            opdsManager.password = pass
+            opdsManager.dataLocation = location
+            
+            // Refresh API client with new credentials/URL
+            opdsManager.refreshApi()
+            
+            Toast.makeText(context, "Settings saved", Toast.LENGTH_SHORT).show()
         }
     }
 

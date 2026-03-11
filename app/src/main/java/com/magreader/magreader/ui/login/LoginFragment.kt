@@ -33,20 +33,30 @@ class LoginFragment : Fragment() {
         opdsManager = OpdsManager(requireContext())
 
         // Pre-fill if exists
-        binding.editServerUrl.setText(opdsManager.opdsUrl)
-        binding.editUsername.setText(opdsManager.username)
-        binding.editPassword.setText(opdsManager.password)
+        val savedUrl = opdsManager.opdsUrl
+        val savedUser = opdsManager.username
+        val savedPass = opdsManager.password
+
+        binding.editServerUrl.setText(savedUrl)
+        binding.editUsername.setText(savedUser)
+        binding.editPassword.setText(savedPass)
+
+        // If credentials already exist, try to log in automatically
+        if (!savedUrl.isNullOrEmpty()) {
+            performLogin(savedUrl, savedUser, savedPass, isAutoLogin = true)
+        }
 
         binding.buttonLogin.setOnClickListener {
-            var url = binding.editServerUrl.text.toString().trim()
+            val urlInput = binding.editServerUrl.text.toString().trim()
             val user = binding.editUsername.text.toString().trim()
             val pass = binding.editPassword.text.toString().trim()
 
-            if (url.isEmpty()) {
+            if (urlInput.isEmpty()) {
                 Toast.makeText(context, "Please enter OPDS URL", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
+            var url = urlInput
             // Auto-append suffix if missing
             if (!url.contains("/api/v1/opds")) {
                 url = if (url.endsWith("/")) {
@@ -57,29 +67,7 @@ class LoginFragment : Fragment() {
                 binding.editServerUrl.setText(url)
             }
 
-            binding.progressBar.visibility = View.VISIBLE
-            binding.buttonLogin.isEnabled = false
-
-            opdsManager.opdsUrl = url
-            opdsManager.username = user
-            opdsManager.password = pass
-            opdsManager.refreshApi()
-
-            lifecycleScope.launch {
-                try {
-                    val feed = opdsManager.getFeed(url)
-                    if (feed != null) {
-                        findNavController().navigate(R.id.action_login_to_library)
-                    } else {
-                        Toast.makeText(context, "Failed to connect to server", Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Connection failed: ${e.message}", Toast.LENGTH_LONG).show()
-                } finally {
-                    binding.progressBar.visibility = View.GONE
-                    binding.buttonLogin.isEnabled = true
-                }
-            }
+            performLogin(url, user, pass, isAutoLogin = false)
         }
 
         binding.buttonOffline.setOnClickListener {
@@ -87,6 +75,38 @@ class LoginFragment : Fragment() {
                 putBoolean("isOfflineMode", true)
             }
             findNavController().navigate(R.id.action_login_to_library, bundle)
+        }
+    }
+
+    private fun performLogin(url: String, user: String?, pass: String?, isAutoLogin: Boolean) {
+        if (!isAutoLogin) {
+            binding.progressBar.visibility = View.VISIBLE
+            binding.buttonLogin.isEnabled = false
+        }
+
+        opdsManager.opdsUrl = url
+        opdsManager.username = user
+        opdsManager.password = pass
+        opdsManager.refreshApi()
+
+        lifecycleScope.launch {
+            try {
+                val feed = opdsManager.getFeed(url)
+                if (feed != null) {
+                    findNavController().navigate(R.id.action_login_to_library)
+                } else if (!isAutoLogin) {
+                    Toast.makeText(context, "Failed to connect to server", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                if (!isAutoLogin) {
+                    Toast.makeText(context, "Connection failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                if (!isAutoLogin) {
+                    binding.progressBar.visibility = View.GONE
+                    binding.buttonLogin.isEnabled = true
+                }
+            }
         }
     }
 

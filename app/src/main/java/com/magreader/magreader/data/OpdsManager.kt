@@ -146,6 +146,18 @@ class OpdsManager(private val context: Context) {
         offlinePrefs.edit().putString(entry.id, json).apply()
     }
 
+    fun deleteBook(entryId: String) {
+        val file = File(baseDir, "${entryId.hashCode()}.pdf")
+        if (file.exists()) {
+            file.delete()
+        }
+        val thumbFile = File(baseDir, "${entryId.hashCode()}.thumb")
+        if (thumbFile.exists()) {
+            thumbFile.delete()
+        }
+        offlinePrefs.edit().remove(entryId).apply()
+    }
+
     fun getOfflineBooks(): List<OpdsEntry> {
         val allMetadata = offlinePrefs.all
         val entries = mutableListOf<OpdsEntry>()

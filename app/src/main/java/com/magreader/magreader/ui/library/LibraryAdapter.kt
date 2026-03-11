@@ -1,7 +1,9 @@
 package com.magreader.magreader.ui.library
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -16,10 +18,18 @@ import okhttp3.Credentials
 
 class LibraryAdapter(
     private val opdsManager: OpdsManager,
-    private val onItemClick: (OpdsEntry) -> Unit
+    private val onItemClick: (OpdsEntry) -> Unit,
+    private val onItemLongClick: (OpdsEntry) -> Unit
 ) : ListAdapter<OpdsEntry, LibraryAdapter.BookViewHolder>(BookDiffCallback()) {
 
     var isGridView: Boolean = false
+    var isSelectionMode: Boolean = false
+        set(value) {
+            field = value
+            if (!value) selectedItems.clear()
+            notifyDataSetChanged()
+        }
+    val selectedItems = mutableSetOf<String>()
 
     override fun getItemViewType(position: Int): Int {
         return if (isGridView) VIEW_TYPE_GRID else VIEW_TYPE_LIST
@@ -39,6 +49,15 @@ class LibraryAdapter(
         holder.bind(getItem(position))
     }
 
+    fun toggleSelection(entryId: String) {
+        if (selectedItems.contains(entryId)) {
+            selectedItems.remove(entryId)
+        } else {
+            selectedItems.add(entryId)
+        }
+        notifyDataSetChanged()
+    }
+
     inner class BookViewHolder(private val binding: ViewBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(entry: OpdsEntry) {
             val titleView = when (binding) {
@@ -49,6 +68,11 @@ class LibraryAdapter(
             val imageView = when (binding) {
                 is ItemBookBinding -> binding.imageThumbnail
                 is ItemBookGridBinding -> binding.imageThumbnail
+                else -> null
+            }
+            val checkBox = when (binding) {
+                is ItemBookBinding -> binding.checkboxSelect
+                is ItemBookGridBinding -> binding.checkboxSelect
                 else -> null
             }
 
@@ -65,7 +89,30 @@ class LibraryAdapter(
                 }
             }
 
-            binding.root.setOnClickListener { onItemClick(entry) }
+            if (isSelectionMode) {
+                checkBox?.visibility = View.VISIBLE
+                checkBox?.isChecked = selectedItems.contains(entry.id)
+            } else {
+                checkBox?.visibility = View.GONE
+            }
+
+            checkBox?.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) selectedItems.add(entry.id)
+                else selectedItems.remove(entry.id)
+            }
+
+            binding.root.setOnClickListener {
+                if (isSelectionMode) {
+                    toggleSelection(entry.id)
+                } else {
+                    onItemClick(entry)
+                }
+            }
+
+            binding.root.setOnLongClickListener {
+                onItemLongClick(entry)
+                true
+            }
         }
     }
 

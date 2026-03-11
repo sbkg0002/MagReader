@@ -49,37 +49,55 @@ class LibraryFragment : Fragment() {
             return
         }
 
-        adapter = LibraryAdapter(opdsManager) { entry ->
-            if (isOfflineMode || (entry.acquisitionUrl != null && (entry.type?.contains("pdf") == true || entry.acquisitionUrl!!.endsWith(".pdf")))) {
-                val filePath = if (isOfflineMode) entry.acquisitionUrl?.removePrefix("file://") else null
-                
-                if (filePath != null) {
-                    val bundle = Bundle().apply {
-                        putString("filePath", filePath)
+        adapter = LibraryAdapter(
+            opdsManager,
+            onItemClick = { entry ->
+                if (isOfflineMode || (entry.acquisitionUrl != null && (entry.type?.contains("pdf") == true || entry.acquisitionUrl!!.endsWith(".pdf")))) {
+                    val filePath = if (isOfflineMode) entry.acquisitionUrl?.removePrefix("file://") else null
+                    
+                    if (filePath != null) {
+                        val bundle = Bundle().apply {
+                            putString("filePath", filePath)
+                        }
+                        findNavController().navigate(R.id.nav_reader, bundle)
+                    } else {
+                        val bundle = Bundle().apply {
+                            putString("entryId", entry.id)
+                            putString("title", entry.title)
+                            putString("summary", entry.summary)
+                            putString("thumbnailUrl", entry.thumbnailUrl)
+                            putString("acquisitionUrl", entry.acquisitionUrl)
+                        }
+                        findNavController().navigate(R.id.action_library_to_book_detail, bundle)
                     }
-                    findNavController().navigate(R.id.nav_reader, bundle)
-                } else {
+                } else if (entry.acquisitionUrl != null && entry.type?.contains("atom+xml") == true) {
                     val bundle = Bundle().apply {
-                        putString("entryId", entry.id)
-                        putString("title", entry.title)
-                        putString("summary", entry.summary)
-                        putString("thumbnailUrl", entry.thumbnailUrl)
-                        putString("acquisitionUrl", entry.acquisitionUrl)
+                        putString("subFeedUrl", entry.acquisitionUrl)
+                        putBoolean("isOfflineMode", false)
                     }
-                    findNavController().navigate(R.id.action_library_to_book_detail, bundle)
+                    findNavController().navigate(R.id.nav_library, bundle)
                 }
-            } else if (entry.acquisitionUrl != null && entry.type?.contains("atom+xml") == true) {
-                val bundle = Bundle().apply {
-                    putString("subFeedUrl", entry.acquisitionUrl)
-                    putBoolean("isOfflineMode", false)
+            },
+            onItemLongClick = { entry ->
+                if (isOfflineMode) {
+                    toggleSelectionMode(true)
+                    adapter.toggleSelection(entry.id)
+                    updateSelectionCount()
                 }
-                findNavController().navigate(R.id.nav_library, bundle)
             }
-        }
+        )
 
         binding.buttonToggleLayout.setOnClickListener {
             isGridView = !isGridView
             updateLayout()
+        }
+
+        binding.buttonCancelSelection.setOnClickListener {
+            toggleSelectionMode(false)
+        }
+
+        binding.buttonDeleteSelected.setOnClickListener {
+            deleteSelectedItems()
         }
 
         updateLayout()
@@ -106,14 +124,42 @@ class LibraryFragment : Fragment() {
         }
 
         if (currentEntries.isEmpty()) {
-            if (isOfflineMode) {
-                loadOfflineContent()
-            } else {
-                val subFeedUrl = arguments?.getString("subFeedUrl")
-                loadFeed(subFeedUrl ?: opdsManager.opdsUrl!!)
-            }
+            refreshContent()
         } else {
             adapter.submitList(currentEntries.toList())
+        }
+    }
+
+    private fun toggleSelectionMode(enabled: Boolean) {
+        adapter.isSelectionMode = enabled
+        binding.layoutSelectionToolbar.visibility = if (enabled) View.VISIBLE else View.GONE
+        binding.buttonToggleLayout.visibility = if (enabled) View.GONE else View.VISIBLE
+        if (enabled) updateSelectionCount()
+    }
+
+    private fun updateSelectionCount() {
+        binding.textSelectionCount.text = "${adapter.selectedItems.size} selected"
+    }
+
+    private fun deleteSelectedItems() {
+        val itemsToDelete = adapter.selectedItems.toList()
+        if (itemsToDelete.isEmpty()) return
+
+        itemsToDelete.forEach { entryId ->
+            opdsManager.deleteBook(entryId)
+        }
+        
+        toggleSelectionMode(false)
+        refreshContent()
+        Toast.makeText(context, "Deleted ${itemsToDelete.size} items", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun refreshContent() {
+        if (isOfflineMode) {
+            loadOfflineContent()
+        } else {
+            val subFeedUrl = arguments?.getString("subFeedUrl")
+            loadFeed(subFeedUrl ?: opdsManager.opdsUrl!!)
         }
     }
 
@@ -121,10 +167,10 @@ class LibraryFragment : Fragment() {
         adapter.isGridView = isGridView
         if (isGridView) {
             binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
-            binding.buttonToggleLayout.setImageResource(R.drawable.ic_slideshow_black_24dp) // List icon placeholder
+            binding.buttonToggleLayout.setImageResource(R.drawable.ic_list_view_24dp)
         } else {
             binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-            binding.buttonToggleLayout.setImageResource(R.drawable.ic_gallery_black_24dp) // Grid icon placeholder
+            binding.buttonToggleLayout.setImageResource(R.drawable.ic_grid_view_24dp)
         }
         binding.recyclerView.adapter = adapter
     }
@@ -134,7 +180,7 @@ class LibraryFragment : Fragment() {
         val books = opdsManager.getOfflineBooks()
         currentEntries.clear()
         currentEntries.addAll(books)
-        adapter.submitList(books)
+        adapter.submitList(currentEntries.toList())
         binding.progressBar.visibility = View.GONE
         if (books.isEmpty()) {
             Toast.makeText(context, "No offline content found", Toast.LENGTH_LONG).show()

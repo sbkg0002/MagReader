@@ -11,8 +11,14 @@ android {
         applicationId = "com.magreader.magreader"
         minSdk = 26
         targetSdk = 35
+        
+        // Use Git tag as version name, default to "1.0" if not available
+        val gitVersionName = project.providers.exec {
+            commandLine("git", "describe", "--tags", "--always")
+        }.standardOutput.asText.get().trim()
+        
         versionCode = 1
-        versionName = "1.0"
+        versionName = gitVersionName.ifEmpty { "1.0" }.removePrefix("v")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

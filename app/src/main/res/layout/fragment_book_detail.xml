@@ -10,12 +10,24 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <ImageView
-            android:id="@+id/image_thumbnail"
-            android:layout_width="200dp"
-            android:layout_height="300dp"
-            android:layout_gravity="center"
-            android:scaleType="fitCenter" />
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="240dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center">
+
+            <ImageView
+                android:id="@+id/image_thumbnail"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:scaleType="fitCenter"
+                android:background="#EEEEEE"
+                app:layout_constraintDimensionRatio="0.71:1"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <TextView
             android:id="@+id/text_title"

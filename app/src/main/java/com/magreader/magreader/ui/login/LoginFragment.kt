@@ -56,18 +56,7 @@ class LoginFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            var url = urlInput
-            // Auto-append suffix if missing
-            if (!url.contains("/api/v1/opds")) {
-                url = if (url.endsWith("/")) {
-                    "${url}api/v1/opds"
-                } else {
-                    "$url/api/v1/opds"
-                }
-                binding.editServerUrl.setText(url)
-            }
-
-            performLogin(url, user, pass, isAutoLogin = false)
+            performLogin(urlInput, user, pass, isAutoLogin = false)
         }
 
         binding.buttonOffline.setOnClickListener {
@@ -78,34 +67,63 @@ class LoginFragment : Fragment() {
         }
     }
 
-    private fun performLogin(url: String, user: String?, pass: String?, isAutoLogin: Boolean) {
+    private fun performLogin(urlInput: String, user: String?, pass: String?, isAutoLogin: Boolean) {
         if (!isAutoLogin) {
             binding.progressBar.visibility = View.VISIBLE
             binding.buttonLogin.isEnabled = false
         }
 
-        opdsManager.opdsUrl = url
-        opdsManager.username = user
-        opdsManager.password = pass
-        opdsManager.refreshApi()
-
         lifecycleScope.launch {
-            try {
-                val feed = opdsManager.getFeed(url)
-                if (feed != null) {
-                    findNavController().navigate(R.id.action_login_to_library)
-                } else if (!isAutoLogin) {
-                    Toast.makeText(context, "Failed to connect to server", Toast.LENGTH_SHORT).show()
+            val urlsToTry = mutableListOf<String>()
+            if (!urlInput.startsWith("http://") && !urlInput.startsWith("https://")) {
+                urlsToTry.add("http://$urlInput")
+                urlsToTry.add("https://$urlInput")
+            } else {
+                urlsToTry.add(urlInput)
+            }
+
+            var success = false
+            var lastException: Exception? = null
+
+            for (baseUrl in urlsToTry) {
+                var url = baseUrl
+                // Auto-append suffix if missing
+                if (!url.contains("/api/v1/opds")) {
+                    url = if (url.endsWith("/")) {
+                        "${url}api/v1/opds"
+                    } else {
+                        "$url/api/v1/opds"
+                    }
                 }
-            } catch (e: Exception) {
-                if (!isAutoLogin) {
-                    Toast.makeText(context, "Connection failed: ${e.message}", Toast.LENGTH_LONG).show()
+
+                opdsManager.opdsUrl = url
+                opdsManager.username = user
+                opdsManager.password = pass
+                opdsManager.refreshApi()
+
+                try {
+                    val feed = opdsManager.getFeed(url)
+                    if (feed != null) {
+                        success = true
+                        if (!isAutoLogin) {
+                            binding.editServerUrl.setText(url)
+                        }
+                        findNavController().navigate(R.id.action_login_to_library)
+                        break
+                    }
+                } catch (e: Exception) {
+                    lastException = e
                 }
-            } finally {
-                if (!isAutoLogin) {
-                    binding.progressBar.visibility = View.GONE
-                    binding.buttonLogin.isEnabled = true
-                }
+            }
+
+            if (!success && !isAutoLogin) {
+                val errorMsg = lastException?.message ?: "Failed to connect to server"
+                Toast.makeText(context, "Connection failed: $errorMsg", Toast.LENGTH_LONG).show()
+            }
+
+            if (!isAutoLogin) {
+                binding.progressBar.visibility = View.GONE
+                binding.buttonLogin.isEnabled = true
             }
         }
     }

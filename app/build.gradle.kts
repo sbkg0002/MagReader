@@ -12,12 +12,17 @@ android {
         minSdk = 26
         targetSdk = 35
         
-        // Use Git tag as version name, default to "1.0" if not available
+        // Calculate versionCode based on total number of commits
+        val gitCommitCount = project.providers.exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+        }.standardOutput.asText.get().trim().toIntOrNull() ?: 1
+        
+        // Use Git tag as version name
         val gitVersionName = project.providers.exec {
             commandLine("git", "describe", "--tags", "--always")
         }.standardOutput.asText.get().trim()
         
-        versionCode = 1
+        versionCode = gitCommitCount
         versionName = gitVersionName.ifEmpty { "1.0" }.removePrefix("v")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -34,8 +39,6 @@ android {
 
     buildTypes {
         release {
-            // Sign release build with debug key for testing on Android 15
-            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
